@@ -42,11 +42,3 @@ salsa20-encryption/
 └── README.md
 
 ---
-
-### src/__init__.py
-
-```python
-"""
-Программный комплекс шифрования данных на основе Salsa20
-"""
-__version__ = "1.0.0"
