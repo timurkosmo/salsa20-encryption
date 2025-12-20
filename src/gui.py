@@ -19,7 +19,7 @@ class EncryptionGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Salsa20 Encryption System")
-        self.root.geometry("800x700")
+        self.root.geometry("800x750")
         
         self.manager = EncryptionManager()
         self.current_key = None
@@ -27,6 +27,79 @@ class EncryptionGUI:
         self.current_hash = None
         
         self._create_widgets()
+    
+    def _on_button_enter(self, event):
+        """Изменение цвета при наведении"""
+        event.widget['background'] = '#E0E0E0'
+    
+    def _on_button_leave(self, event):
+        """Возврат цвета при уходе курсора"""
+        event.widget['background'] = 'SystemButtonFace'
+    
+    def _on_action_button_enter(self, event, color):
+        """Изменение цвета для цветных кнопок при наведении"""
+        if color == 'green':
+            event.widget['background'] = '#45A049'
+        elif color == 'blue':
+            event.widget['background'] = '#1976D2'
+    
+    def _on_action_button_leave(self, event, color):
+        """Возврат цвета для цветных кнопок"""
+        if color == 'green':
+            event.widget['background'] = '#4CAF50'
+        elif color == 'blue':
+            event.widget['background'] = '#2196F3'
+    
+    def _paste_text(self, text_widget):
+        """Вставка текста из буфера обмена"""
+        try:
+            text = self.root.clipboard_get()
+            text_widget.insert(tk.INSERT, text)
+            return "break"
+        except tk.TclError:
+            pass
+    
+    def _copy_text(self, text_widget):
+        """Копирование текста в буфер обмена"""
+        try:
+            text = text_widget.get(tk.SEL_FIRST, tk.SEL_LAST)
+            self.root.clipboard_clear()
+            self.root.clipboard_append(text)
+            return "break"
+        except tk.TclError:
+            pass
+    
+    def _cut_text(self, text_widget):
+        """Вырезание текста"""
+        try:
+            text = text_widget.get(tk.SEL_FIRST, tk.SEL_LAST)
+            self.root.clipboard_clear()
+            self.root.clipboard_append(text)
+            text_widget.delete(tk.SEL_FIRST, tk.SEL_LAST)
+            return "break"
+        except tk.TclError:
+            pass
+    
+    def _select_all(self, text_widget):
+        """Выделение всего текста"""
+        text_widget.tag_add(tk.SEL, "1.0", tk.END)
+        text_widget.mark_set(tk.INSERT, "1.0")
+        text_widget.see(tk.INSERT)
+        return "break"
+    
+    def _create_context_menu(self, text_widget):
+        """Создание контекстного меню"""
+        menu = tk.Menu(text_widget, tearoff=0)
+        menu.add_command(label="Вставить (Ctrl+V)", command=lambda: self._paste_text(text_widget))
+        menu.add_command(label="Копировать (Ctrl+C)", command=lambda: self._copy_text(text_widget))
+        menu.add_command(label="Вырезать (Ctrl+X)", command=lambda: self._cut_text(text_widget))
+        menu.add_separator()
+        menu.add_command(label="Выделить все (Ctrl+A)", command=lambda: self._select_all(text_widget))
+        
+        def show_menu(event):
+            menu.post(event.x_root, event.y_root)
+        
+        text_widget.bind("<Button-3>", show_menu)  # Правая кнопка мыши
     
     def _create_widgets(self):
         """Создание элементов интерфейса"""
@@ -43,57 +116,118 @@ class EncryptionGUI:
         input_frame = tk.LabelFrame(self.root, text="Исходный текст", padx=10, pady=10)
         input_frame.pack(fill='both', expand=True, padx=10, pady=5)
         
+        # Подсказка
+        hint_label = tk.Label(
+            input_frame,
+            text="Введите или вставьте текст (Ctrl+V)",
+            font=('Arial', 9, 'italic'),
+            fg='gray'
+        )
+        hint_label.pack(anchor='w')
+        
         self.input_text = scrolledtext.ScrolledText(
             input_frame, 
             height=8, 
             width=70,
-            wrap=tk.WORD
+            wrap=tk.WORD,
+            font=('Courier', 10)
         )
         self.input_text.pack()
+        
+        # Привязка горячих клавиш для поля ввода
+        self.input_text.bind('<Control-v>', lambda e: self._paste_text(self.input_text))
+        self.input_text.bind('<Control-V>', lambda e: self._paste_text(self.input_text))
+        self.input_text.bind('<Control-c>', lambda e: self._copy_text(self.input_text))
+        self.input_text.bind('<Control-C>', lambda e: self._copy_text(self.input_text))
+        self.input_text.bind('<Control-x>', lambda e: self._cut_text(self.input_text))
+        self.input_text.bind('<Control-X>', lambda e: self._cut_text(self.input_text))
+        self.input_text.bind('<Control-a>', lambda e: self._select_all(self.input_text))
+        self.input_text.bind('<Control-A>', lambda e: self._select_all(self.input_text))
+        
+        # Для Mac
+        self.input_text.bind('<Command-v>', lambda e: self._paste_text(self.input_text))
+        self.input_text.bind('<Command-c>', lambda e: self._copy_text(self.input_text))
+        self.input_text.bind('<Command-x>', lambda e: self._cut_text(self.input_text))
+        self.input_text.bind('<Command-a>', lambda e: self._select_all(self.input_text))
+        
+        # Контекстное меню
+        self._create_context_menu(self.input_text)
         
         # Кнопки операций
         button_frame = tk.Frame(self.root)
         button_frame.pack(pady=10)
         
+        # Кнопка "Зашифровать"
         encrypt_btn = tk.Button(
             button_frame,
             text="Зашифровать",
             command=self._encrypt,
             bg='#4CAF50',
-            fg='white',
+            fg='black',
             width=15,
-            height=2
+            height=2,
+            font=('Arial', 10, 'bold'),
+            cursor='hand2',
+            activebackground='#45A049',
+            activeforeground='black',
+            relief=tk.RAISED,
+            bd=3
         )
         encrypt_btn.grid(row=0, column=0, padx=5)
+        encrypt_btn.bind('<Enter>', lambda e: self._on_action_button_enter(e, 'green'))
+        encrypt_btn.bind('<Leave>', lambda e: self._on_action_button_leave(e, 'green'))
         
+        # Кнопка "Расшифровать"
         decrypt_btn = tk.Button(
             button_frame,
             text="Расшифровать",
             command=self._decrypt,
             bg='#2196F3',
-            fg='white',
+            fg='black',
             width=15,
-            height=2
+            height=2,
+            font=('Arial', 10, 'bold'),
+            cursor='hand2',
+            activebackground='#1976D2',
+            activeforeground='black',
+            relief=tk.RAISED,
+            bd=3
         )
         decrypt_btn.grid(row=0, column=1, padx=5)
+        decrypt_btn.bind('<Enter>', lambda e: self._on_action_button_enter(e, 'blue'))
+        decrypt_btn.bind('<Leave>', lambda e: self._on_action_button_leave(e, 'blue'))
         
+        # Кнопка "Сохранить в файл"
         save_btn = tk.Button(
             button_frame,
             text="Сохранить в файл",
             command=self._save_to_file,
             width=15,
-            height=2
+            height=2,
+            font=('Arial', 10),
+            cursor='hand2',
+            relief=tk.RAISED,
+            bd=3
         )
         save_btn.grid(row=0, column=2, padx=5)
+        save_btn.bind('<Enter>', self._on_button_enter)
+        save_btn.bind('<Leave>', self._on_button_leave)
         
+        # Кнопка "Загрузить из файла"
         load_btn = tk.Button(
             button_frame,
             text="Загрузить из файла",
             command=self._load_from_file,
             width=15,
-            height=2
+            height=2,
+            font=('Arial', 10),
+            cursor='hand2',
+            relief=tk.RAISED,
+            bd=3
         )
         load_btn.grid(row=0, column=3, padx=5)
+        load_btn.bind('<Enter>', self._on_button_enter)
+        load_btn.bind('<Leave>', self._on_button_leave)
         
         # Фрейм для зашифрованного текста
         output_frame = tk.LabelFrame(self.root, text="Результат", padx=10, pady=10)
@@ -103,9 +237,26 @@ class EncryptionGUI:
             output_frame,
             height=8,
             width=70,
-            wrap=tk.WORD
+            wrap=tk.WORD,
+            font=('Courier', 10)
         )
         self.output_text.pack()
+        
+        # Привязка горячих клавиш для поля вывода
+        self.output_text.bind('<Control-v>', lambda e: self._paste_text(self.output_text))
+        self.output_text.bind('<Control-V>', lambda e: self._paste_text(self.output_text))
+        self.output_text.bind('<Control-c>', lambda e: self._copy_text(self.output_text))
+        self.output_text.bind('<Control-C>', lambda e: self._copy_text(self.output_text))
+        self.output_text.bind('<Control-a>', lambda e: self._select_all(self.output_text))
+        self.output_text.bind('<Control-A>', lambda e: self._select_all(self.output_text))
+        
+        # Для Mac
+        self.output_text.bind('<Command-v>', lambda e: self._paste_text(self.output_text))
+        self.output_text.bind('<Command-c>', lambda e: self._copy_text(self.output_text))
+        self.output_text.bind('<Command-a>', lambda e: self._select_all(self.output_text))
+        
+        # Контекстное меню
+        self._create_context_menu(self.output_text)
         
         # Фрейм для информации
         info_frame = tk.LabelFrame(self.root, text="Информация", padx=10, pady=10)
@@ -115,16 +266,31 @@ class EncryptionGUI:
             info_frame,
             height=6,
             width=70,
-            wrap=tk.WORD
+            wrap=tk.WORD,
+            font=('Courier', 9)
         )
         self.info_text.pack()
+        
+        # Привязка для информационного поля
+        self.info_text.bind('<Control-c>', lambda e: self._copy_text(self.info_text))
+        self.info_text.bind('<Control-C>', lambda e: self._copy_text(self.info_text))
+        self.info_text.bind('<Control-a>', lambda e: self._select_all(self.info_text))
+        self.info_text.bind('<Control-A>', lambda e: self._select_all(self.info_text))
+        
+        # Для Mac
+        self.info_text.bind('<Command-c>', lambda e: self._copy_text(self.info_text))
+        self.info_text.bind('<Command-a>', lambda e: self._select_all(self.info_text))
+        
+        # Контекстное меню
+        self._create_context_menu(self.info_text)
         
         # Статус
         self.status_label = tk.Label(
             self.root,
-            text="Готов к работе",
+            text="Готов к работе | Используйте Ctrl+V для вставки текста или правую кнопку мыши",
             relief=tk.SUNKEN,
-            anchor='w'
+            anchor='w',
+            font=('Arial', 9)
         )
         self.status_label.pack(fill='x', side='bottom')
     
@@ -161,7 +327,7 @@ class EncryptionGUI:
             self.info_text.delete('1.0', tk.END)
             self.info_text.insert('1.0', info)
             
-            self.status_label.config(text="Шифрование выполнено")
+            self.status_label.config(text="Шифрование выполнено успешно")
             
         except Exception as e:
             messagebox.showerror("Ошибка", f"Ошибка при шифровании: {str(e)}")
